@@ -25,11 +25,36 @@
             top: 0; left: 0; width: 100%; height: 100%;
             background: #050508;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 500;
             transition: opacity 1s;
         }
+
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80%;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--accent-pink);
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            margin-top: 8px;
+            text-align: center;
+            outline: none;
+            width: 100%;
+            max-width: 250px;
+            font-size: 16px;
+        }
+
+        label { color: white; font-size: 14px; opacity: 0.9; letter-spacing: 1px; text-transform: uppercase; }
 
         #start-button {
             padding: 15px 40px;
@@ -42,6 +67,7 @@
             border-radius: 30px;
             cursor: pointer;
             box-shadow: 0 0 15px rgba(255, 77, 109, 0.2);
+            margin-top: 20px;
         }
 
         #game-container {
@@ -164,7 +190,15 @@
 <body>
 
 <div id="start-overlay">
-    <button id="start-button" onclick="startGame()">Tap to Start</button>
+    <div class="input-group">
+        <label>Who sent this to you?</label>
+        <input type="text" id="planetInput" placeholder="Sender's Name">
+    </div>
+    <div class="input-group">
+        <label>What is your name?</label>
+        <input type="text" id="starInput" placeholder="Your Name">
+    </div>
+    <button id="start-button" onclick="startGame()">Start</button>
 </div>
 
 <div id="game-container">
@@ -179,8 +213,7 @@
 </div>
 
 <div id="final-screen">
-    <div style="color: var(--accent-pink); font-size: 28px; font-weight: bold; padding: 10px; line-height: 1.4;">
-        Congratulations!<br>You've fallen in Love.
+    <div id="final-text" style="color: var(--accent-pink); font-size: 24px; font-weight: bold; padding: 20px; line-height: 1.5; max-width: 80%;">
     </div>
     <div class="rose-container">🌹🌹🌹</div>
 </div>
@@ -188,15 +221,22 @@
 <script>
     let audioCtx;
     let masterGain;
+    let namePlanet = "Planet"; 
+    let nameStar = "Star";     
 
     function startGame() {
+        const pVal = document.getElementById('planetInput').value.trim();
+        const sVal = document.getElementById('starInput').value.trim();
+        
+        if(pVal) namePlanet = pVal;
+        if(sVal) nameStar = sVal;
+
         document.getElementById('start-overlay').style.opacity = '0';
         setTimeout(() => {
             document.getElementById('start-overlay').style.display = 'none';
             startStory();
         }, 1000);
         
-        // Initialize Audio
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         masterGain = audioCtx.createGain();
         masterGain.connect(audioCtx.destination);
@@ -317,7 +357,7 @@
             if(zoom > 1) zoom -= 0.0008;
             let speed = 0.015;
             objects.rp.angle += speed; objects.star.angle += speed;
-            if (objects.rp.active && objects.rp.dist > 165) objects.rp.dist -= 7.0; // FASTER ENTRY
+            if (objects.rp.active && objects.rp.dist > 165) objects.rp.dist -= 7.0;
             if (objects.star.active && objects.star.dist > 165) objects.star.dist -= 7.0;
             objects.rp.x = centerX + Math.cos(objects.rp.angle) * objects.rp.dist;
             objects.rp.y = centerY + Math.sin(objects.rp.angle) * objects.rp.dist;
@@ -341,46 +381,46 @@
     }
 
     async function startStory() {
-        await new Promise(r => setTimeout(r, 500)); // Quicker start
+        await new Promise(r => setTimeout(r, 500));
         objects.rp.active = true;
         while(objects.rp.dist > 175) await new Promise(r => setTimeout(r, 50));
-        await postMessage("Planet: I'm just a lonely rogue planet looking for a star...", "planet");
+        await postMessage(`${namePlanet}: I'm just a lonely rogue planet looking for a star...`, "planet");
         await postMessage("And now I'm trapped orbiting a black hole forever.", "planet");
-        await postMessage("This really sucks!", "planet");
         objects.star.active = true;
         while(objects.star.dist > 175) await new Promise(r => setTimeout(r, 50));
-        await postMessage("Star: Oh no! I'm getting pulled in!", "star");
-        await postMessage("A pretty star like me doesn't deserve this!", "star");
-        await postMessage("Planet: Hey star! Hey! I'm stuck here too!", "planet");
-        await postMessage("Star: Eww don't talk to me! I need to escape!", "star");
-        await postMessage("Planet: Hmm. I don't think it's possible.", "planet");
-        await postMessage("Star: If I can just push away!", "star");
+        await postMessage(`${nameStar}: Oh no! I'm getting pulled in!`, "star");
+        await postMessage(`A pretty star like me doesn't deserve this!`, "star");
+        await postMessage(`${namePlanet}: Hey star! Hey! I'm stuck here too!`, "planet");
+        await postMessage(`${nameStar}: Eww don't talk to me! I need to escape!`, "star");
         
         controls.style.opacity = 1; controls.style.pointerEvents = 'auto';
-        setTimeout(() => { if(gameState === 'intro') postMessage("Star: It's not working!", "star"); }, 3500);
-        await new Promise(r => setTimeout(r, 9000));
+        // Added 1 extra second delay (4.5s total)
+        setTimeout(() => { if(gameState === 'intro') postMessage(`${nameStar}: It's not working!`, "star"); }, 4500);
+        await new Promise(r => setTimeout(r, 8000));
         controls.style.opacity = 0;
         
-        await postMessage("Planet: Don't move and let me come to you.", "planet");
-        await postMessage("Star: Why?", "star");
-        await postMessage("Planet: Maybe if we get close our combined gravity will be strong enough to swing us out.", "planet");
+        await postMessage(`${namePlanet}: Don't move and let me come to you.`, "planet");
+        await postMessage(`${nameStar}: Why?`, "star");
+        await postMessage(`${namePlanet}: Maybe our combined gravity will be strong enough to swing us out.`, "planet");
+        
         while(Math.abs(objects.rp.angle % (Math.PI*2) - (objects.star.angle - 0.2) % (Math.PI*2)) > 0.1) {
             objects.rp.angle += 0.04; await new Promise(r => setTimeout(r, 20));
         }
         gameState = 'together'; 
-        await postMessage("Star: Okay.", "star");
-        await postMessage("That's close enough buddy.", "star");
-        await postMessage("Planet: Wow you're really hot!", "planet");
-        await postMessage("Star: Okay I'll try again.", "star");
+        await postMessage(`${nameStar}: Okay.`, "star");
+        await postMessage(`Wait... who are you anyway?`, "star");
+        await postMessage(`${namePlanet}: My name is ${namePlanet}. And you?`, "planet");
+        await postMessage(`${nameStar}: I'm ${nameStar}.`, "star");
+        await postMessage(`${namePlanet}: Wow ${nameStar}, you're really hot!`, "planet");
+        await postMessage(`${nameStar}: Okay let's try to escape now!`, "star");
         
         controls.style.opacity = 1; controls.style.pointerEvents = 'auto';
-        await new Promise(r => setTimeout(r, 9000));
+        await new Promise(r => setTimeout(r, 8000));
         controls.style.opacity = 0;
         
         let fall = setInterval(() => { objects.rp.dist -= 1.2; objects.star.dist -= 1.2; if(objects.rp.dist < 5) clearInterval(fall); }, 50);
-        await postMessage("Star: Oh no we're falling in!", "star");
-        await postMessage("Planet: At least we're not dying alone!", "planet");
-        await postMessage("Star: Eww!", "star");
+        await postMessage(`${nameStar}: Oh no we're falling in!`, "star");
+        await postMessage(`${namePlanet}: At least we're not dying alone, ${nameStar}!`, "planet");
 
         transition.style.opacity = 1;
         await new Promise(r => setTimeout(r, 2000));
@@ -389,18 +429,23 @@
         transition.style.opacity = 0;
         playSingularityBloom(); 
         
-        await new Promise(r => setTimeout(r, 3500));
-        await postMessage("Star: Where are we?", "star", true);
-        await postMessage("Planet: We're inside the singularity! We're not dead!", "planet", true);
-        await postMessage("Star: It's actually nice here.", "star", true);
+        await new Promise(r => setTimeout(r, 2500));
+        await postMessage(`${nameStar}: Where are we?`, "star", true);
+        await postMessage(`${namePlanet}: We're inside the singularity! We're alive!`, "planet", true);
         await postMessage("Singularity: Welcome.", "singularity", true);
-        await postMessage("Planet: Hi! What is this place?", "planet", true);
-        await postMessage("Singularity: You are outside of time and space, where you can see feelings and walk through dreams.", "singularity", true);
-        await postMessage("Singularity: You're lucky. This is the realm of Love.", "singularity", true);
-        await postMessage("Star: We're in Love?", "star", true);
-        await postMessage("Planet: We've fallen in Love!", "planet", true);
-        await postMessage("Star: Eww!", "star", true);
+        await postMessage("Singularity: You are outside of space and time.", "singularity", true);
+        await postMessage("Singularity: Here, you can see feelings and walk through dreams.", "singularity", true);
+        await postMessage(`Singularity: ${namePlanet} and ${nameStar}...`, "singularity", true);
+        await postMessage("Singularity: You are in the realm of Love.", "singularity", true);
+        await postMessage(`${nameStar}: We're in Love?`, "star", true);
+        await postMessage(`${namePlanet}: We've fallen in Love!`, "planet", true);
+        await postMessage(`${nameStar}: Eww!`, "star", true);
+        
+        // Final screen reveal with clean apostrophe and re-triggered sound
+        const finalStr = "Congratulations " + nameStar + ",<br>you've fallen in love with " + namePlanet + "!";
+        document.getElementById('final-text').innerHTML = finalStr;
         finalScreen.style.display = 'flex';
+        playSingularityBloom(); 
     }
 
     gameLoop();
