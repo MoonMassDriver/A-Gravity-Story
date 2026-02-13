@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A Gravity Story</title>
+    <style>
+        :root {
+            --bg-color: #050508;
+            --accent-pink: #ff4d6d;
+            --planet-blue: #a0d2eb;
+            --star-gold: #fff9c4;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: black;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden; touch-action: none;
+        }
+
+        #start-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #050508;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+            transition: opacity 1s;
+        }
+
+        #start-button {
+            padding: 15px 40px;
+            background: transparent;
+            border: 1px solid var(--accent-pink);
+            color: var(--accent-pink);
+            font-size: 18px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 77, 109, 0.2);
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: #050508;
+            overflow: hidden;
+        }
+
+        canvas { display: block; position: relative; z-index: 2; }
+
+        #chat-container {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .chat-bubble {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin-top: 6px;
+            font-size: 16px;
+            max-width: 85%;
+            align-self: center;
+            animation: slideUp 0.5s ease-out;
+            border: 1px solid rgba(255,255,255,0.1);
+            line-height: 1.4;
+        }
+
+        .msg-planet { color: var(--planet-blue); }
+        .msg-star { color: var(--star-gold); }
+        
+        .h-planet { color: #2b5d80 !important; background: rgba(255,255,255,0.5); font-weight: bold; }
+        .h-star { color: #8a6d1a !important; background: rgba(255,255,255,0.5); font-weight: bold; }
+        .h-sing { color: #000 !important; background: rgba(255,255,255,0.3); font-weight: bold; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #controls-area {
+            position: absolute;
+            bottom: 40px; 
+            right: 30px;
+            width: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s;
+        }
+
+        #joystick-base {
+            width: 80px; height: 80px;
+            background: rgba(100, 100, 100, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            position: relative;
+        }
+
+        #joystick-stick {
+            width: 36px; height: 36px;
+            background: linear-gradient(145deg, #eee, #999);
+            border-radius: 50%;
+            position: absolute;
+            top: 22px; left: 22px;
+            border: 1px solid #555;
+        }
+
+        #joystick-label {
+            color: rgba(255,255,255,0.5);
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+            white-space: nowrap;
+        }
+
+        #transition-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; opacity: 0; pointer-events: none; z-index: 150;
+            transition: opacity 2s;
+        }
+
+        #final-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 200;
+            text-align: center;
+        }
+
+        .rose-container {
+            font-size: 50px;
+            margin-top: 20px;
+            filter: drop-shadow(0 0 10px rgba(255, 77, 109, 0.5));
+            animation: bloom 2s ease-out;
+        }
+
+        @keyframes bloom {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="start-overlay">
+    <button id="start-button" onclick="startGame()">Tap to Start</button>
+</div>
+
+<div id="game-container">
+    <canvas id="canvas"></canvas>
+    <div id="chat-container"></div>
+    <div id="transition-overlay"></div>
+</div>
+
+<div id="controls-area">
+    <div id="joystick-base"><div id="joystick-stick"></div></div>
+    <div id="joystick-label">joystick to escape</div>
+</div>
+
+<div id="final-screen">
+    <div style="color: var(--accent-pink); font-size: 28px; font-weight: bold; padding: 10px; line-height: 1.4;">
+        Congratulations!<br>You've fallen in Love.
+    </div>
+    <div class="rose-container">🌹🌹🌹</div>
+</div>
+
+<script>
+    let audioCtx;
+    let masterGain;
+
+    function startGame() {
+        document.getElementById('start-overlay').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('start-overlay').style.display = 'none';
+            startStory();
+        }, 1000);
+        
+        // Initialize Audio
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioCtx.createGain();
+        masterGain.connect(audioCtx.destination);
+        masterGain.gain.value = 0.4;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playTick() {
+        if (!audioCtx || audioCtx.state !== 'running') return;
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+        osc.connect(g); g.connect(masterGain);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.03);
+    }
+
+    function playSingularityBloom() {
+        if (!audioCtx || audioCtx.state !== 'running') return;
+        [261, 329, 392, 523].forEach((f, i) => {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.frequency.setValueAtTime(f, audioCtx.currentTime + (i * 0.1));
+            g.gain.setValueAtTime(0, audioCtx.currentTime + (i * 0.1));
+            g.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 0.5 + (i * 0.1));
+            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3);
+            osc.connect(g); g.connect(masterGain);
+            osc.start(audioCtx.currentTime + (i * 0.1));
+            osc.stop(audioCtx.currentTime + 3);
+        });
+    }
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const chatContainer = document.getElementById('chat-container');
+    const controls = document.getElementById('controls-area');
+    const stick = document.getElementById('joystick-stick');
+    const base = document.getElementById('joystick-base');
+    const transition = document.getElementById('transition-overlay');
+    const finalScreen = document.getElementById('final-screen');
+
+    let width, height, centerX, centerY;
+    let frame = 0, gameState = 'intro', zoom = 3.5;
+    let input = { x: 0, y: 0 };
+    let objects = {
+        rp: { x: -200, y: -200, angle: 0, dist: 1200, active: false, color: '#a0d2eb' },
+        star: { x: 1200, y: 800, angle: Math.PI, dist: 1200, active: false, color: '#fff9c4' }
+    };
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        centerX = width / 2;
+        centerY = (height / 2) + 120;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let dragging = false;
+    const handleMove = (e) => {
+        if (!dragging) return;
+        const touch = e.touches ? e.touches[0] : e;
+        const rect = base.getBoundingClientRect();
+        const bx = rect.left + rect.width / 2, by = rect.top + rect.height / 2;
+        let dx = touch.clientX - bx, dy = touch.clientY - by;
+        const dist = Math.sqrt(dx*dx + dy*dy), max = 30;
+        if (dist > max) { dx *= max/dist; dy *= max/dist; }
+        stick.style.transform = `translate(${dx}px, ${dy}px)`;
+        input.x = dx / max; input.y = dy / max;
+    };
+    base.addEventListener('touchstart', (e) => { e.preventDefault(); dragging = true; });
+    window.addEventListener('touchmove', handleMove, {passive: false});
+    window.addEventListener('touchend', () => { dragging = false; stick.style.transform = `translate(0,0)`; input = {x:0, y:0}; });
+
+    async function postMessage(text, type = 'singularity', isHeavenly = false) {
+        const bubble = document.createElement('div');
+        let colorClass = `msg-${type}`;
+        if(isHeavenly) {
+            if(type === 'planet') colorClass = 'h-planet';
+            else if(type === 'star') colorClass = 'h-star';
+            else colorClass = 'h-sing';
+        }
+        bubble.className = `chat-bubble ${colorClass}`;
+        chatContainer.appendChild(bubble);
+        if(chatContainer.childNodes.length > 4) chatContainer.removeChild(chatContainer.firstChild);
+        playTick(); 
+        let curr = "";
+        for(let char of text) { curr += char; bubble.textContent = curr; await new Promise(r => setTimeout(r, 45)); }
+        await new Promise(r => setTimeout(r, isHeavenly ? 3200 : 2200));
+    }
+
+    function drawBlackHole(radius) {
+        ctx.save(); ctx.translate(centerX, centerY);
+        const pulse = Math.sin(frame * 0.05) * 4;
+        const opacityPulse = 0.4 + Math.sin(frame * 0.08) * 0.2;
+        ctx.beginPath(); ctx.arc(0, 0, (radius * 1.35) + pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 170, 70, ${opacityPulse})`; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'black'; ctx.shadowBlur = 30; ctx.shadowColor = 'white';
+        ctx.fill(); ctx.restore();
+    }
+
+    function drawHeavenly() {
+        let sky = ctx.createLinearGradient(0, 0, 0, height);
+        sky.addColorStop(0, '#ff9a9e'); sky.addColorStop(0.5, '#fecfef'); sky.addColorStop(1, '#ffc3a0');
+        ctx.fillStyle = sky; ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        for(let i=0; i<3; i++) {
+            ctx.beginPath(); ctx.arc(((frame*0.4)+(i*250))%width, 300+(i*60), 140, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    function gameLoop() {
+        frame++;
+        ctx.clearRect(0, 0, width, height);
+        if(gameState !== 'heavenly') {
+            if(zoom > 1) zoom -= 0.0008;
+            let speed = 0.015;
+            objects.rp.angle += speed; objects.star.angle += speed;
+            if (objects.rp.active && objects.rp.dist > 165) objects.rp.dist -= 7.0; // FASTER ENTRY
+            if (objects.star.active && objects.star.dist > 165) objects.star.dist -= 7.0;
+            objects.rp.x = centerX + Math.cos(objects.rp.angle) * objects.rp.dist;
+            objects.rp.y = centerY + Math.sin(objects.rp.angle) * objects.rp.dist;
+            objects.star.x = centerX + Math.cos(objects.star.angle) * objects.star.dist + (input.x * 25);
+            objects.star.y = centerY + Math.sin(objects.star.angle) * objects.star.dist + (input.y * 25);
+            drawBlackHole(32 * zoom);
+        } else {
+            drawHeavenly();
+            objects.star.angle += 0.01;
+            objects.star.x = centerX + Math.cos(objects.star.angle) * 70;
+            objects.star.y = centerY + Math.sin(objects.star.angle) * 70;
+            objects.rp.x = centerX + Math.cos(objects.star.angle + Math.PI) * 70;
+            objects.rp.y = centerY + Math.sin(objects.star.angle + Math.PI) * 70;
+        }
+        ctx.beginPath(); ctx.arc(objects.rp.x, objects.rp.y, 6, 0, Math.PI*2); ctx.fillStyle = objects.rp.color; ctx.fill();
+        if(objects.star.active) {
+            ctx.beginPath(); ctx.arc(objects.star.x, objects.star.y, 10, 0, Math.PI*2);
+            ctx.fillStyle = objects.star.color; ctx.shadowBlur = 15; ctx.shadowColor = 'white'; ctx.fill(); ctx.shadowBlur = 0;
+        }
+        requestAnimationFrame(gameLoop);
+    }
+
+    async function startStory() {
+        await new Promise(r => setTimeout(r, 500)); // Quicker start
+        objects.rp.active = true;
+        while(objects.rp.dist > 175) await new Promise(r => setTimeout(r, 50));
+        await postMessage("Planet: I'm just a lonely rogue planet looking for a star...", "planet");
+        await postMessage("And now I'm trapped orbiting a black hole forever.", "planet");
+        await postMessage("This really sucks!", "planet");
+        objects.star.active = true;
+        while(objects.star.dist > 175) await new Promise(r => setTimeout(r, 50));
+        await postMessage("Star: Oh no! I'm getting pulled in!", "star");
+        await postMessage("A pretty star like me doesn't deserve this!", "star");
+        await postMessage("Planet: Hey star! Hey! I'm stuck here too!", "planet");
+        await postMessage("Star: Eww don't talk to me! I need to escape!", "star");
+        await postMessage("Planet: Hmm. I don't think it's possible.", "planet");
+        await postMessage("Star: If I can just push away!", "star");
+        
+        controls.style.opacity = 1; controls.style.pointerEvents = 'auto';
+        setTimeout(() => { if(gameState === 'intro') postMessage("Star: It's not working!", "star"); }, 3500);
+        await new Promise(r => setTimeout(r, 9000));
+        controls.style.opacity = 0;
+        
+        await postMessage("Planet: Don't move and let me come to you.", "planet");
+        await postMessage("Star: Why?", "star");
+        await postMessage("Planet: Maybe if we get close our combined gravity will be strong enough to swing us out.", "planet");
+        while(Math.abs(objects.rp.angle % (Math.PI*2) - (objects.star.angle - 0.2) % (Math.PI*2)) > 0.1) {
+            objects.rp.angle += 0.04; await new Promise(r => setTimeout(r, 20));
+        }
+        gameState = 'together'; 
+        await postMessage("Star: Okay.", "star");
+        await postMessage("That's close enough buddy.", "star");
+        await postMessage("Planet: Wow you're really hot!", "planet");
+        await postMessage("Star: Okay I'll try again.", "star");
+        
+        controls.style.opacity = 1; controls.style.pointerEvents = 'auto';
+        await new Promise(r => setTimeout(r, 9000));
+        controls.style.opacity = 0;
+        
+        let fall = setInterval(() => { objects.rp.dist -= 1.2; objects.star.dist -= 1.2; if(objects.rp.dist < 5) clearInterval(fall); }, 50);
+        await postMessage("Star: Oh no we're falling in!", "star");
+        await postMessage("Planet: At least we're not dying alone!", "planet");
+        await postMessage("Star: Eww!", "star");
+
+        transition.style.opacity = 1;
+        await new Promise(r => setTimeout(r, 2000));
+        chatContainer.innerHTML = ""; 
+        gameState = 'heavenly'; 
+        transition.style.opacity = 0;
+        playSingularityBloom(); 
+        
+        await new Promise(r => setTimeout(r, 3500));
+        await postMessage("Star: Where are we?", "star", true);
+        await postMessage("Planet: We're inside the singularity! We're not dead!", "planet", true);
+        await postMessage("Star: It's actually nice here.", "star", true);
+        await postMessage("Singularity: Welcome.", "singularity", true);
+        await postMessage("Planet: Hi! What is this place?", "planet", true);
+        await postMessage("Singularity: You are outside of time and space, where you can see feelings and walk through dreams.", "singularity", true);
+        await postMessage("Singularity: You're lucky. This is the realm of Love.", "singularity", true);
+        await postMessage("Star: We're in Love?", "star", true);
+        await postMessage("Planet: We've fallen in Love!", "planet", true);
+        await postMessage("Star: Eww!", "star", true);
+        finalScreen.style.display = 'flex';
+    }
+
+    gameLoop();
+</script>
+</body>
+</html>
