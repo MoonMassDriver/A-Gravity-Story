@@ -222,7 +222,7 @@
     let audioCtx;
     let masterGain;
     let namePlanet = "Planet"; 
-    let nameStar = "Star";     
+    let nameStar = "Star";      
 
     function startGame() {
         const pVal = document.getElementById('planetInput').value.trim();
@@ -394,7 +394,6 @@
         await postMessage(`${nameStar}: Eww don't talk to me! I need to escape!`, "star");
         
         controls.style.opacity = 1; controls.style.pointerEvents = 'auto';
-        // Added 1 extra second delay (4.5s total)
         setTimeout(() => { if(gameState === 'intro') postMessage(`${nameStar}: It's not working!`, "star"); }, 4500);
         await new Promise(r => setTimeout(r, 8000));
         controls.style.opacity = 0;
@@ -432,17 +431,18 @@
         await new Promise(r => setTimeout(r, 2500));
         await postMessage(`${nameStar}: Where are we?`, "star", true);
         await postMessage(`${namePlanet}: We're inside the singularity! We're alive!`, "planet", true);
-        await postMessage("Singularity: Welcome.", "singularity", true);
+        await postMessage(`Singularity: Welcome ${namePlanet} and ${nameStar}.`, "singularity", true);
+        await postMessage(`${namePlanet}: What is this place?`, "planet", true);
         await postMessage("Singularity: You are outside of space and time.", "singularity", true);
-        await postMessage("Singularity: Here, you can see feelings and walk through dreams.", "singularity", true);
-        await postMessage(`Singularity: ${namePlanet} and ${nameStar}...`, "singularity", true);
+        // UPDATED LINE: "Here you can..."
+        await postMessage("Singularity: Here you can see feelings and walk through dreams.", "singularity", true);
+        // REMOVED: Name repetition line
         await postMessage("Singularity: You are in the realm of Love.", "singularity", true);
         await postMessage(`${nameStar}: We're in Love?`, "star", true);
         await postMessage(`${namePlanet}: We've fallen in Love!`, "planet", true);
         await postMessage(`${nameStar}: Eww!`, "star", true);
         
-        // Final screen reveal with clean apostrophe and re-triggered sound
-        const finalStr = "Congratulations " + nameStar + ",<br>you've fallen in love with " + namePlanet + "!";
+        const finalStr = "Congratulations " + nameStar + ",<br>you've fallen in Love with " + namePlanet + "!";
         document.getElementById('final-text').innerHTML = finalStr;
         finalScreen.style.display = 'flex';
         playSingularityBloom(); 
